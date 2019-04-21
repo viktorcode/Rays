@@ -23,6 +23,12 @@ class GameViewController: NSViewController {
             return
         }
 
+        guard let linearSRGB = CGColorSpace(name: CGColorSpace.linearSRGB) else {
+            print("Linear SRGB colour space is not supported on this device")
+            return
+        }
+        mtkView.colorspace = linearSRGB
+
         // Select the device to render with.  We choose the default device
         guard let defaultDevice = MTLCreateSystemDefaultDevice() else {
             print("Metal is not supported on this device")
@@ -31,15 +37,13 @@ class GameViewController: NSViewController {
 
         mtkView.device = defaultDevice
 
-        guard let newRenderer = Renderer(metalKitView: mtkView) else {
-            print("Renderer cannot be initialized")
-            return
+        do {
+            let newRenderer = try Renderer(withMetalKitView: mtkView)
+            renderer = newRenderer
+            renderer.mtkView(mtkView, drawableSizeWillChange: mtkView.drawableSize)
+            mtkView.delegate = renderer
+        } catch {
+            print("Renderer cannot be initialized : \(error)")
         }
-
-        renderer = newRenderer
-
-        renderer.mtkView(mtkView, drawableSizeWillChange: mtkView.drawableSize)
-
-        mtkView.delegate = renderer
     }
 }

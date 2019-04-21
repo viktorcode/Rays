@@ -12,38 +12,39 @@
 #ifndef ShaderTypes_h
 #define ShaderTypes_h
 
-#ifdef __METAL_VERSION__
-#define NS_ENUM(_type, _name) enum _name : _type _name; enum _name : _type
-#define NSInteger metal::int32_t
-#else
-#import <Foundation/Foundation.h>
-#endif
-
 #include <simd/simd.h>
 
-typedef NS_ENUM(NSInteger, BufferIndex)
-{
-    BufferIndexMeshPositions = 0,
-    BufferIndexMeshGenerics  = 1,
-    BufferIndexUniforms      = 2
+#define TRIANGLE_MASK_GEOMETRY 1
+#define TRIANGLE_MASK_LIGHT    2
+
+#define RAY_MASK_PRIMARY   3
+#define RAY_MASK_SHADOW    1
+#define RAY_MASK_SECONDARY 1
+
+struct Camera {
+    vector_float3 position;
+    vector_float3 right;
+    vector_float3 up;
+    vector_float3 forward;
 };
 
-typedef NS_ENUM(NSInteger, VertexAttribute)
-{
-    VertexAttributePosition  = 0,
-    VertexAttributeTexcoord  = 1,
+struct AreaLight {
+    vector_float3 position;
+    vector_float3 forward;
+    vector_float3 right;
+    vector_float3 up;
+    vector_float3 color;
 };
 
-typedef NS_ENUM(NSInteger, TextureIndex)
+struct Uniforms
 {
-    TextureIndexColor    = 0,
+    unsigned int width;
+    unsigned int height;
+    unsigned int blocksWide;
+    unsigned int frameIndex;
+    struct Camera camera;
+    struct AreaLight light;
 };
-
-typedef struct
-{
-    matrix_float4x4 projectionMatrix;
-    matrix_float4x4 modelViewMatrix;
-} Uniforms;
 
 #endif /* ShaderTypes_h */
 
