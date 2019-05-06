@@ -13,6 +13,7 @@
 		20472A79226B0E05004C1A7D /* MatrixMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20472A78226B0E05004C1A7D /* MatrixMath.swift */; };
 		20472A7A226B0E05004C1A7D /* MatrixMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20472A78226B0E05004C1A7D /* MatrixMath.swift */; };
 		20472A7B226B0E05004C1A7D /* MatrixMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20472A78226B0E05004C1A7D /* MatrixMath.swift */; };
+		205A7BFB2280C17C008147D9 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 205A7BFA2280C17C008147D9 /* README.md */; };
 		20875398226749450038CA47 /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20875397226749450038CA47 /* Renderer.swift */; };
 		20875399226753A90038CA47 /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20875397226749450038CA47 /* Renderer.swift */; };
 		2087539A226753AB0038CA47 /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20875397226749450038CA47 /* Renderer.swift */; };
@@ -40,6 +41,7 @@
 /* Begin PBXFileReference section */
 		20472A742269EE02004C1A7D /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
 		20472A78226B0E05004C1A7D /* MatrixMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatrixMath.swift; sourceTree = "<group>"; };
+		205A7BFA2280C17C008147D9 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		20875397226749450038CA47 /* Renderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renderer.swift; sourceTree = "<group>"; };
 		20A506262265F9DB006C077F /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		20A506282265F9DB006C077F /* ShaderTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderTypes.h; sourceTree = "<group>"; };
@@ -90,6 +92,7 @@
 		20A506202265F9DB006C077F = {
 			isa = PBXGroup;
 			children = (
+				205A7BFA2280C17C008147D9 /* README.md */,
 				20A506252265F9DB006C077F /* Rays Shared */,
 				20A506302265F9DF006C077F /* Rays iOS */,
 				20A506412265F9DF006C077F /* Rays tvOS */,
@@ -257,6 +260,7 @@
 			files = (
 				20A5065E2265F9E0006C077F /* ShaderTypes.h in Resources */,
 				20A506372265F9DF006C077F /* Main.storyboard in Resources */,
+				205A7BFB2280C17C008147D9 /* README.md in Resources */,
 				20A506612265F9E0006C077F /* Assets.xcassets in Resources */,
 				20A5063A2265F9DF006C077F /* LaunchScreen.storyboard in Resources */,
 			);
