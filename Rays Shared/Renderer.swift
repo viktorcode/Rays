@@ -192,12 +192,14 @@ class Renderer: NSObject, MTKViewDelegate {
 
         // When using managed buffers, we need to indicate that we modified the buffer so that the GPU
         // copy can be updated
+		#if os(macOS)
         if options.contains(.storageModeManaged) {
             vertexPositionBuffer.didModifyRange(0..<vertexPositionBuffer.length)
             vertexColourBuffer.didModifyRange(0..<vertexColourBuffer.length)
             vertexNormalBuffer.didModifyRange(0..<vertexNormalBuffer.length)
             triangleMaskBuffer.didModifyRange(0..<triangleMaskBuffer.length)
         }
+		#endif
 
         // MARK - Create a raytracer for Metal device
         intersector = MPSRayIntersector(device: device)
