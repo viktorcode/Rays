@@ -12,7 +12,7 @@ import simd
 import os
 
 let maxFramesInFlight = 3
-let alignedUniformsSize = (MemoryLayout<Uniforms>.size + 255) & ~255
+let alignedUniformsSize = (MemoryLayout<Uniforms>.stride + 255) & ~255
 
 let rayStride = 48
 let intersectionStride = MemoryLayout<MPSIntersectionDistancePrimitiveIndexCoordinates>.size
@@ -137,7 +137,7 @@ class Renderer: NSObject, MTKViewDelegate {
             Matrix4x4.scale(0.6, 1.2, 0.6)
         cube(withFaceMask: .all, colour: float3([0.725, 0.71, 0.68]), transform: transform, inwardNormals: false, triangleMask: uint(TRIANGLE_MASK_GEOMETRY), vertices: &vertices, normals: &normals, colours: &colours, masks: &masks)
 
-        // MARK - Create buffers
+		// MARK: - Create buffers
         // Uniform buffer contains a few small values which change from frame to frame. We will have up to 3
         // frames in flight at once, so allocate a range of the buffer for each frame. The GPU will read from
         // one chunk while the CPU writes to the next chunk. Each chunk must be aligned to 256 bytes on macOS
@@ -147,45 +147,45 @@ class Renderer: NSObject, MTKViewDelegate {
         // Vertex data should be stored in private or managed buffers on discrete GPU systems (AMD, NVIDIA).
         // Private buffers are stored entirely in GPU memory and cannot be accessed by the CPU. Managed
         // buffers maintain a copy in CPU memory and a copy in GPU memory.
-        var options: MTLResourceOptions = []
+        let storageOptions: MTLResourceOptions
 
         #if os(macOS)
-        options = .storageModeManaged
+        storageOptions = .storageModeManaged
         #else // iOS, tvOS
-        options = .storageModeShared
+        storageOptions = .storageModeShared
         #endif
 
         // Allocate buffers for vertex positions, colors, and normals. Note that each vertex position is a
         // float3, which is a 16 byte aligned type.
-        guard let uniformBuffer = device.makeBuffer(length: uniformBufferSize, options: options) else {
+        guard let uniformBuffer = device.makeBuffer(length: uniformBufferSize, options: storageOptions) else {
             throw RendererInitError.errorCreatingBuffer
         }
         self.uniformBuffer = uniformBuffer
 
-        let float2Size = MemoryLayout<float2>.size
-        guard let randomBuffer = device.makeBuffer(length: 256 * maxFramesInFlight * float2Size, options: options) else {
+        let float2Size = MemoryLayout<float2>.stride
+        guard let randomBuffer = device.makeBuffer(length: 256 * maxFramesInFlight * float2Size, options: storageOptions) else {
             throw RendererInitError.errorCreatingBuffer
         }
         self.randomBuffer = randomBuffer
 
-        let float3Size = MemoryLayout<float3>.size
-        guard let vertexPositionBuffer = device.makeBuffer(bytes: &vertices, length: vertices.count * float3Size, options: options) else {
+        let float3Size = MemoryLayout<float3>.stride
+        guard let vertexPositionBuffer = device.makeBuffer(bytes: &vertices, length: vertices.count * float3Size, options: storageOptions) else {
             throw RendererInitError.errorCreatingBuffer
         }
         self.vertexPositionBuffer = vertexPositionBuffer
 
-        guard let vertexColourBuffer = device.makeBuffer(bytes: &colours, length: colours.count * float3Size, options: options) else {
+        guard let vertexColourBuffer = device.makeBuffer(bytes: &colours, length: colours.count * float3Size, options: storageOptions) else {
             throw RendererInitError.errorCreatingBuffer
         }
         self.vertexColourBuffer = vertexColourBuffer
 
-        guard let vertexNormalBuffer = device.makeBuffer(bytes: &normals, length: normals.count * float3Size, options: options) else {
+        guard let vertexNormalBuffer = device.makeBuffer(bytes: &normals, length: normals.count * float3Size, options: storageOptions) else {
             throw RendererInitError.errorCreatingBuffer
         }
         self.vertexNormalBuffer = vertexNormalBuffer
 
-        let uintSize = MemoryLayout<uint>.size
-        guard let triangleMaskBuffer = device.makeBuffer(bytes: &masks, length: masks.count * uintSize, options: options) else {
+        let uintSize = MemoryLayout<uint>.stride
+        guard let triangleMaskBuffer = device.makeBuffer(bytes: &masks, length: masks.count * uintSize, options: storageOptions) else {
             throw RendererInitError.errorCreatingBuffer
         }
         self.triangleMaskBuffer = triangleMaskBuffer
@@ -193,7 +193,7 @@ class Renderer: NSObject, MTKViewDelegate {
         // When using managed buffers, we need to indicate that we modified the buffer so that the GPU
         // copy can be updated
 		#if os(macOS)
-        if options.contains(.storageModeManaged) {
+        if storageOptions.contains(.storageModeManaged) {
             vertexPositionBuffer.didModifyRange(0..<vertexPositionBuffer.length)
             vertexColourBuffer.didModifyRange(0..<vertexColourBuffer.length)
             vertexNormalBuffer.didModifyRange(0..<vertexNormalBuffer.length)
@@ -201,7 +201,7 @@ class Renderer: NSObject, MTKViewDelegate {
         }
 		#endif
 
-        // MARK - Create a raytracer for Metal device
+		// MARK: - Create a raytracer for Metal device
         intersector = MPSRayIntersector(device: device)
         intersector.rayDataType = .originMaskDirectionMaxDistance
         intersector.rayStride = rayStride
@@ -400,16 +400,15 @@ class Renderer: NSObject, MTKViewDelegate {
         uniforms.pointee.height = UInt32(size.height)
 
         uniforms.pointee.blocksWide = (uniforms.pointee.width + 15) / 16
-
+		uniforms.pointee.frameIndex = frameIndex
         frameIndex += 1
-        uniforms.pointee.frameIndex = frameIndex
 
         // For managed storage mode
         #if os(macOS)
         uniformBuffer.didModifyRange(uniformBufferOffset..<uniformBufferOffset + alignedUniformsSize)
         #endif
 
-        randomBufferOffset = 256 * MemoryLayout<float2>.size * uniformBufferIndex
+        randomBufferOffset = 256 * MemoryLayout<float2>.stride * uniformBufferIndex
         let float2Pointer = randomBuffer.contents().advanced(by: randomBufferOffset)
         var randoms = float2Pointer.bindMemory(to: float2.self, capacity: 1)
         for _ in 0..<256 {
@@ -419,7 +418,7 @@ class Renderer: NSObject, MTKViewDelegate {
 
         // For managed storage mode
         #if os(macOS)
-        randomBuffer.didModifyRange(randomBufferOffset..<randomBufferOffset + 256 * MemoryLayout<float2>.size)
+        randomBuffer.didModifyRange(randomBufferOffset..<randomBufferOffset + 256 * MemoryLayout<float2>.stride)
         #endif
 
         uniformBufferIndex = (uniformBufferIndex + 1) % maxFramesInFlight
