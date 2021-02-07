@@ -14,6 +14,7 @@ class GameViewController: UIViewController {
 
     var renderer: Renderer!
     var mtkView: MTKView!
+    var counterView: UILabel!
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -32,8 +33,15 @@ class GameViewController: UIViewController {
         mtkView.device = defaultDevice
         mtkView.backgroundColor = UIColor.black
 
+        counterView = UILabel(frame: CGRect(x: 10, y: 10, width: 150, height: 50))
+        counterView.textColor = .white
+        counterView.text = "----"
+        mtkView.addSubview(counterView)
+
 		do {
-			let newRenderer = try Renderer(withMetalKitView: mtkView)
+            let newRenderer = try Renderer(withMetalKitView: mtkView) { [unowned self] value in
+                self.counterView.text = String(format: "MRays/s: %.3f", value / 1_000_000)
+            }
 			renderer = newRenderer
 			renderer.mtkView(mtkView, drawableSizeWillChange: mtkView.drawableSize)
 			mtkView.delegate = renderer

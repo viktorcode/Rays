@@ -61,7 +61,13 @@ class Renderer: NSObject, MTKViewDelegate {
 
     var frameIndex: uint = 0
 
-    init(withMetalKitView view: MTKView) throws {
+    var lastCheckPoint = Date()
+    var timeIntervals: [CFTimeInterval] = []
+
+    let display: (Double) -> Void
+
+    init(withMetalKitView view: MTKView, displayCounter: @escaping (Double) -> Void) throws {
+        display = displayCounter
         self.view = view
         guard let device = view.device else { throw RendererInitError.noDevice }
         self.device = device
@@ -105,37 +111,37 @@ class Renderer: NSObject, MTKViewDelegate {
         self.copyPipeline = try device.makeRenderPipelineState(descriptor: renderDescriptor)
 
         // MARK - Create scene
-        var vertices = [float3]()
-        var normals = [float3]()
-        var colours = [float3]()
+        var vertices = [SIMD3<Float>]()
+        var normals = [SIMD3<Float>]()
+        var colours = [SIMD3<Float>]()
         var masks = [uint]()
 
         // Light source
         var transform = Matrix4x4.translation(0, 1, 0) *
             Matrix4x4.scale(0.5, 1.98, 0.5)
-        cube(withFaceMask: .positiveY, colour: float3([1, 1, 1]), transform: transform, inwardNormals: true, triangleMask: uint(TRIANGLE_MASK_LIGHT), vertices: &vertices, normals: &normals, colours: &colours, masks: &masks)
+        cube(withFaceMask: .positiveY, colour: SIMD3<Float>([1, 1, 1]), transform: transform, inwardNormals: true, triangleMask: uint(TRIANGLE_MASK_LIGHT), vertices: &vertices, normals: &normals, colours: &colours, masks: &masks)
 
         // Top, bottom, back
         transform = Matrix4x4.translation(0, 1, 0) * Matrix4x4.scale(2, 2, 2)
-        cube(withFaceMask: [.negativeY, .positiveY,.negativeZ], colour: float3([0.725, 0.71, 0.68]), transform: transform, inwardNormals: true, triangleMask: uint(TRIANGLE_MASK_GEOMETRY), vertices: &vertices, normals: &normals, colours: &colours, masks: &masks)
+        cube(withFaceMask: [.negativeY, .positiveY,.negativeZ], colour: SIMD3<Float>([0.725, 0.71, 0.68]), transform: transform, inwardNormals: true, triangleMask: uint(TRIANGLE_MASK_GEOMETRY), vertices: &vertices, normals: &normals, colours: &colours, masks: &masks)
 
         // Left wall
-        cube(withFaceMask: .negativeX, colour: float3([0.63, 0.065, 0.05]), transform: transform, inwardNormals: true, triangleMask: uint(TRIANGLE_MASK_GEOMETRY), vertices: &vertices, normals: &normals, colours: &colours, masks: &masks)
+        cube(withFaceMask: .negativeX, colour: SIMD3<Float>([0.63, 0.065, 0.05]), transform: transform, inwardNormals: true, triangleMask: uint(TRIANGLE_MASK_GEOMETRY), vertices: &vertices, normals: &normals, colours: &colours, masks: &masks)
 
         // Right wall
-        cube(withFaceMask: .positiveX, colour: float3([0.14, 0.45, 0.091]), transform: transform, inwardNormals: true, triangleMask: uint(TRIANGLE_MASK_GEOMETRY), vertices: &vertices, normals: &normals, colours: &colours, masks: &masks)
+        cube(withFaceMask: .positiveX, colour: SIMD3<Float>([0.14, 0.45, 0.091]), transform: transform, inwardNormals: true, triangleMask: uint(TRIANGLE_MASK_GEOMETRY), vertices: &vertices, normals: &normals, colours: &colours, masks: &masks)
 
         // Short box
         transform = Matrix4x4.translation(0.3275, 0.3, 0.3725) *
-            Matrix4x4.rotation(radians: -0.3, axis: float3(0, 1, 0)) *
+            Matrix4x4.rotation(radians: -0.3, axis: SIMD3<Float>(0, 1, 0)) *
             Matrix4x4.scale(0.6, 0.6, 0.6)
-        cube(withFaceMask: .all, colour: float3([0.725, 0.71, 0.68]), transform: transform, inwardNormals: false, triangleMask: uint(TRIANGLE_MASK_GEOMETRY), vertices: &vertices, normals: &normals, colours: &colours, masks: &masks)
+        cube(withFaceMask: .all, colour: SIMD3<Float>([0.725, 0.71, 0.68]), transform: transform, inwardNormals: false, triangleMask: uint(TRIANGLE_MASK_GEOMETRY), vertices: &vertices, normals: &normals, colours: &colours, masks: &masks)
 
         // Tall box
         transform = Matrix4x4.translation(-0.335, 0.6, -0.29) *
-            Matrix4x4.rotation(radians: 0.3, axis: float3(0, 1, 0)) *
+            Matrix4x4.rotation(radians: 0.3, axis: SIMD3<Float>(0, 1, 0)) *
             Matrix4x4.scale(0.6, 1.2, 0.6)
-        cube(withFaceMask: .all, colour: float3([0.725, 0.71, 0.68]), transform: transform, inwardNormals: false, triangleMask: uint(TRIANGLE_MASK_GEOMETRY), vertices: &vertices, normals: &normals, colours: &colours, masks: &masks)
+        cube(withFaceMask: .all, colour: SIMD3<Float>([0.725, 0.71, 0.68]), transform: transform, inwardNormals: false, triangleMask: uint(TRIANGLE_MASK_GEOMETRY), vertices: &vertices, normals: &normals, colours: &colours, masks: &masks)
 
 		// MARK: - Create buffers
         // Uniform buffer contains a few small values which change from frame to frame. We will have up to 3
@@ -162,13 +168,13 @@ class Renderer: NSObject, MTKViewDelegate {
         }
         self.uniformBuffer = uniformBuffer
 
-        let float2Size = MemoryLayout<float2>.stride
+        let float2Size = MemoryLayout<SIMD2<Float>>.stride
         guard let randomBuffer = device.makeBuffer(length: 256 * maxFramesInFlight * float2Size, options: storageOptions) else {
             throw RendererInitError.errorCreatingBuffer
         }
         self.randomBuffer = randomBuffer
 
-        let float3Size = MemoryLayout<float3>.stride
+        let float3Size = MemoryLayout<SIMD3<Float>>.stride
         guard let vertexPositionBuffer = device.makeBuffer(bytes: &vertices, length: vertices.count * float3Size, options: storageOptions) else {
             throw RendererInitError.errorCreatingBuffer
         }
@@ -218,6 +224,10 @@ class Renderer: NSObject, MTKViewDelegate {
 
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
         self.size = size
+
+        lastCheckPoint = Date()
+        timeIntervals.removeAll()
+
         // Handle window size changes by allocating a buffer large enough to contain one standard ray,
         // one shadow ray, and one ray/triangle intersection result per pixel
         let rayCount = Int(size.width * size.height)
@@ -248,13 +258,29 @@ class Renderer: NSObject, MTKViewDelegate {
         // We are using the uniform buffer to stream uniform data to the GPU, so we need to wait until the
         // oldest GPU frame has completed before we can reuse that space in the buffer.
         semaphore.wait()
+
+        // Rendering performance report
+        let now = Date()
+        let timePassed = now.timeIntervalSince(lastCheckPoint)
+        if timePassed > 1 {
+            let totalPixels = Int(size.width * size.height) * timeIntervals.count
+            let totalTime = timeIntervals.reduce(0, +)
+            DispatchQueue.main.async { [unowned self] in
+                self.display(Double(totalPixels) / totalTime)
+            }
+            timeIntervals.removeAll()
+            lastCheckPoint = now
+        }
+
         // Create a command buffer which will contain our GPU commands
         guard let commandBuffer = queue.makeCommandBuffer() else { return }
         // When the frame has finished, signal that we can reuse the uniform buffer space from this frame.
         // Note that the contents of completion handlers should be as fast as possible as the GPU driver may
         // have other work scheduled on the underlying dispatch queue.
-        commandBuffer.addCompletedHandler {
-            _ in self.semaphore.signal()
+        commandBuffer.addCompletedHandler { [unowned self] cb in
+            let executionDuration = cb.gpuEndTime - cb.gpuStartTime
+            self.timeIntervals.append(executionDuration)
+            self.semaphore.signal()
         }
 
         updateUniforms()
@@ -265,12 +291,11 @@ class Renderer: NSObject, MTKViewDelegate {
         // launched in groups called "threadgroups". We need to align the number of threads to be a multiple
         // of the threadgroup size. We indicated when compiling the pipeline that the threadgroup size would
         // be a multiple of the thread execution width (SIMD group size) which is typically 32 or 64 so 8x8
-        // is a safe threadgroup size which should be small to be supported on most devices. A more advanced
-        // application would choose the threadgroup size dynamically.
-        let threadsPerThreadgroup = MTLSizeMake(8, 8, 1)
-        let threadsHeight = threadsPerThreadgroup.height
-        let threadsWidth = threadsPerThreadgroup.width
-        let threadgroups = MTLSizeMake((width + threadsWidth  - 1) / threadsWidth, (height + threadsHeight - 1) / threadsHeight, 1)
+        // is a safe threadgroup size which should be small to be supported on most devices.
+        let w = rayPipeline.threadExecutionWidth
+        let h = rayPipeline.maxTotalThreadsPerThreadgroup / w
+        let threadsPerThreadgroup = MTLSizeMake(w, h, 1)
+
         // First, we will generate rays on the GPU. We create a compute command encoder which will be used
         // to add commands to the command buffer.
         guard let computeEncoder = commandBuffer.makeComputeCommandEncoder() else { return }
@@ -283,7 +308,8 @@ class Renderer: NSObject, MTKViewDelegate {
         // Bind the ray generation compute pipeline
         computeEncoder.setComputePipelineState(rayPipeline)
         // Launch threads
-        computeEncoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerThreadgroup)
+        let threadsPerGrid = MTLSizeMake(width, height, 1)
+        computeEncoder.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
         // End the encoder
         computeEncoder.endEncoding()
         // We will iterate over the next few kernels several times to allow light to bounce around the scene
@@ -309,7 +335,7 @@ class Renderer: NSObject, MTKViewDelegate {
 
             shadeEncoder.setTexture(renderTarget, index: 0)
             shadeEncoder.setComputePipelineState(shadePipeline)
-            shadeEncoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerThreadgroup)
+            shadeEncoder.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
             shadeEncoder.endEncoding()
 
             // We intersect rays with the scene, except this time we are intersecting shadow rays. We only
@@ -338,7 +364,7 @@ class Renderer: NSObject, MTKViewDelegate {
 
             colourEncoder.setTexture(renderTarget, index: 0)
             colourEncoder.setComputePipelineState(shadowPipeline)
-            colourEncoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerThreadgroup)
+            colourEncoder.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
             colourEncoder.endEncoding()
         }
         // The final kernel averages the current frame's image with all previous frames to reduce noise due
@@ -350,7 +376,7 @@ class Renderer: NSObject, MTKViewDelegate {
         denoiseEncoder.setTexture(accumulationTarget, index: 1)
 
         denoiseEncoder.setComputePipelineState(accumulatePipeline)
-        denoiseEncoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerThreadgroup)
+        denoiseEncoder.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
         denoiseEncoder.endEncoding()
 
         // Copy the resulting image into our view using the graphics pipeline since we can't write directly
@@ -376,17 +402,17 @@ class Renderer: NSObject, MTKViewDelegate {
         uniformBufferOffset = alignedUniformsSize * uniformBufferIndex
         let uniformsPointer = uniformBuffer.contents().advanced(by: uniformBufferOffset)
         let uniforms = uniformsPointer.bindMemory(to: Uniforms.self, capacity: 1)
-        uniforms.pointee.camera.position = float3(0, 1, 3.38)
+        uniforms.pointee.camera.position = SIMD3<Float>(0, 1, 3.38)
 
-        uniforms.pointee.camera.forward = float3(0, 0, -1)
-        uniforms.pointee.camera.right = float3(1, 0, 0)
-        uniforms.pointee.camera.up = float3(0, 1, 0)
+        uniforms.pointee.camera.forward = SIMD3<Float>(0, 0, -1)
+        uniforms.pointee.camera.right = SIMD3<Float>(1, 0, 0)
+        uniforms.pointee.camera.up = SIMD3<Float>(0, 1, 0)
 
-        uniforms.pointee.light.position = float3(0, 1.98, 0)
-        uniforms.pointee.light.forward = float3(0, -1, 0)
-        uniforms.pointee.light.right = float3(0.25, 0, 0)
-        uniforms.pointee.light.up = float3(0, 0, 0.25)
-        uniforms.pointee.light.color = float3(4, 4, 4);
+        uniforms.pointee.light.position = SIMD3<Float>(0, 1.98, 0)
+        uniforms.pointee.light.forward = SIMD3<Float>(0, -1, 0)
+        uniforms.pointee.light.right = SIMD3<Float>(0.25, 0, 0)
+        uniforms.pointee.light.up = SIMD3<Float>(0, 0, 0.25)
+        uniforms.pointee.light.color = SIMD3<Float>(4, 4, 4);
 
         let fieldOfView = 45.0 * (Float.pi / 180.0)
         let aspectRatio = Float(size.width) / Float(size.height)
@@ -408,17 +434,17 @@ class Renderer: NSObject, MTKViewDelegate {
         uniformBuffer.didModifyRange(uniformBufferOffset..<uniformBufferOffset + alignedUniformsSize)
         #endif
 
-        randomBufferOffset = 256 * MemoryLayout<float2>.stride * uniformBufferIndex
+        randomBufferOffset = 256 * MemoryLayout<SIMD2<Float>>.stride * uniformBufferIndex
         let float2Pointer = randomBuffer.contents().advanced(by: randomBufferOffset)
-        var randoms = float2Pointer.bindMemory(to: float2.self, capacity: 1)
+        var randoms = float2Pointer.bindMemory(to: SIMD2<Float>.self, capacity: 1)
         for _ in 0..<256 {
-            randoms.pointee = float2(Float.random(in: 0..<1), Float.random(in: 0..<1))
+            randoms.pointee = SIMD2<Float>(Float.random(in: 0..<1), Float.random(in: 0..<1))
             randoms = randoms.advanced(by: 1)
         }
 
         // For managed storage mode
         #if os(macOS)
-        randomBuffer.didModifyRange(randomBufferOffset..<randomBufferOffset + 256 * MemoryLayout<float2>.stride)
+        randomBuffer.didModifyRange(randomBufferOffset..<randomBufferOffset + 256 * MemoryLayout<SIMD2<Float>>.stride)
         #endif
 
         uniformBufferIndex = (uniformBufferIndex + 1) % maxFramesInFlight

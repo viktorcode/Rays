@@ -21,21 +21,21 @@ struct FaceMask : OptionSet {
                                 .positiveX, .positiveY, .positiveZ]
 }
 
-fileprivate func triangleNormal(v0: float3, v1: float3, v2: float3) -> float3 {
+fileprivate func triangleNormal(v0: SIMD3<Float>, v1: SIMD3<Float>, v2: SIMD3<Float>) -> SIMD3<Float> {
     return cross( normalize(v1 - v0), normalize(v2 - v0) )
 }
 
-fileprivate func cubeFace(withCubeVertices cubeVertices:[float3],
-                          colour: float3,
+fileprivate func cubeFace(withCubeVertices cubeVertices:[SIMD3<Float>],
+                          colour: SIMD3<Float>,
                           index0: Int,
                           index1: Int,
                           index2: Int,
                           index3: Int,
                           inwardNormals: Bool,
                           triangleMask: uint,
-                          vertices: inout [float3],
-                          normals: inout [float3],
-                          colours: inout [float3],
+                          vertices: inout [SIMD3<Float>],
+                          normals: inout [SIMD3<Float>],
+                          colours: inout [SIMD3<Float>],
                           masks: inout [uint]) {
 
     let v0 = cubeVertices[index0]
@@ -52,35 +52,35 @@ fileprivate func cubeFace(withCubeVertices cubeVertices:[float3],
 
     vertices.append(contentsOf: [v0, v1, v2, v0, v2, v3])
     normals.append(contentsOf: [n0, n0, n0, n1, n1, n1])
-    colours.append(contentsOf: [float3](repeating: colour, count: 6))
+    colours.append(contentsOf: [SIMD3<Float>](repeating: colour, count: 6))
     masks.append(contentsOf: [triangleMask, triangleMask])
 }
 
 func cube(withFaceMask faceMask: FaceMask,
-          colour: float3,
+          colour: SIMD3<Float>,
           transform: matrix_float4x4,
           inwardNormals: Bool,
           triangleMask: uint,
-          vertices: inout [float3],
-          normals: inout [float3],
-          colours: inout [float3],
+          vertices: inout [SIMD3<Float>],
+          normals: inout [SIMD3<Float>],
+          colours: inout [SIMD3<Float>],
           masks: inout [uint])
 {
     var cubeVertices = [
-        float3(-0.5, -0.5, -0.5),
-        float3( 0.5, -0.5, -0.5),
-        float3(-0.5,  0.5, -0.5),
-        float3( 0.5,  0.5, -0.5),
-        float3(-0.5, -0.5,  0.5),
-        float3( 0.5, -0.5,  0.5),
-        float3(-0.5,  0.5,  0.5),
-        float3( 0.5,  0.5,  0.5),
+        SIMD3<Float>(-0.5, -0.5, -0.5),
+        SIMD3<Float>( 0.5, -0.5, -0.5),
+        SIMD3<Float>(-0.5,  0.5, -0.5),
+        SIMD3<Float>( 0.5,  0.5, -0.5),
+        SIMD3<Float>(-0.5, -0.5,  0.5),
+        SIMD3<Float>( 0.5, -0.5,  0.5),
+        SIMD3<Float>(-0.5,  0.5,  0.5),
+        SIMD3<Float>( 0.5,  0.5,  0.5),
     ]
 
     cubeVertices = cubeVertices.map { vertex in
-        var transformed = float4(vertex.x, vertex.y, vertex.z, 1)
+        var transformed = SIMD4<Float>(vertex.x, vertex.y, vertex.z, 1)
         transformed = transform * transformed
-        return float3(x: transformed.x, y: transformed.y, z: transformed.z)
+        return SIMD3<Float>(x: transformed.x, y: transformed.y, z: transformed.z)
     }
 
     if faceMask.contains(.negativeX) {
