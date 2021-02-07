@@ -155,7 +155,7 @@ class Renderer: NSObject, MTKViewDelegate {
         // buffers maintain a copy in CPU memory and a copy in GPU memory.
         let storageOptions: MTLResourceOptions
 
-        #if os(macOS)
+        #if arch(x86_64)
         storageOptions = .storageModeManaged
         #else // iOS, tvOS
         storageOptions = .storageModeShared
@@ -198,7 +198,7 @@ class Renderer: NSObject, MTKViewDelegate {
 
         // When using managed buffers, we need to indicate that we modified the buffer so that the GPU
         // copy can be updated
-		#if os(macOS)
+		#if arch(x86_64)
         if storageOptions.contains(.storageModeManaged) {
             vertexPositionBuffer.didModifyRange(0..<vertexPositionBuffer.length)
             vertexColourBuffer.didModifyRange(0..<vertexColourBuffer.length)
@@ -430,7 +430,7 @@ class Renderer: NSObject, MTKViewDelegate {
         frameIndex += 1
 
         // For managed storage mode
-        #if os(macOS)
+        #if arch(x86_64)
         uniformBuffer.didModifyRange(uniformBufferOffset..<uniformBufferOffset + alignedUniformsSize)
         #endif
 
@@ -443,7 +443,7 @@ class Renderer: NSObject, MTKViewDelegate {
         }
 
         // For managed storage mode
-        #if os(macOS)
+        #if arch(x86_64)
         randomBuffer.didModifyRange(randomBufferOffset..<randomBufferOffset + 256 * MemoryLayout<SIMD2<Float>>.stride)
         #endif
 
